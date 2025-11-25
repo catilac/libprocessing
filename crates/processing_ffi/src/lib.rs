@@ -1,5 +1,6 @@
 use bevy::prelude::Entity;
 use processing::prelude::*;
+
 use crate::color::Color;
 
 mod color;
@@ -13,7 +14,7 @@ mod error;
 #[unsafe(no_mangle)]
 pub extern "C" fn processing_init() {
     error::clear_error();
-    error::check(|| init());
+    error::check(init);
 }
 
 /// Create a WebGPU surface from a native window handle.
@@ -33,7 +34,7 @@ pub extern "C" fn processing_create_surface(
     scale_factor: f32,
 ) -> u64 {
     error::clear_error();
-    error::check(|| create_surface(window_handle, width, height, scale_factor))
+    error::check(|| create_surface(window_handle, display_handle, width, height, scale_factor))
         .map(|e| e.to_bits())
         .unwrap_or(0)
 }

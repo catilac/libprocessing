@@ -40,7 +40,6 @@ fn sketch() -> error::Result<()> {
         )?;
 
         end_draw(surface)?;
-
     }
     Ok(())
 }

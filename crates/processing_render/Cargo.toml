@@ -3,6 +3,9 @@ name = "processing_render"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [dependencies]
 bevy = { workspace = true }
 lyon = "1.0"

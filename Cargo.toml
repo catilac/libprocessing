@@ -3,9 +3,16 @@ name = "processing"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [workspace]
 resolver = "3"
 members = ["crates/*"]
+
+[workspace.lints.clippy]
+type_complexity = "allow"
+too_many_arguments = "allow"
 
 [workspace.dependencies]
 bevy = { version = "0.17", no-default-features = true, features = [
@@ -20,10 +27,10 @@ bevy = { workspace = true }
 processing_render = { workspace = true }
 
 [dev-dependencies]
-glfw = "0.60"
+glfw = "0.59.0"
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
-glfw = { version = "0.60", features = ["wayland"] }
+glfw = { version = "0.59.0", features = ["wayland"] }
 
 [[example]]
 name = "rectangle"

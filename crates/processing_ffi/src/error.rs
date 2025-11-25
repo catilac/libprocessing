@@ -7,7 +7,7 @@ use std::{
 use processing::prelude::error::ProcessingError;
 
 thread_local! {
-    static LAST_ERROR: RefCell<Option<CString>> = RefCell::new(None);
+    static LAST_ERROR: RefCell<Option<CString>> = const { RefCell::new(None) };
 }
 
 /// Check if the last operation resulted in an error. Returns a pointer to an error message, or null

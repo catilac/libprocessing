@@ -27,7 +27,7 @@ use crate::{
 static IS_INIT: OnceLock<()> = OnceLock::new();
 
 thread_local! {
-    static APP: RefCell<Option<App>> = RefCell::new(None);
+    static APP: RefCell<Option<App>> = const { RefCell::new(None) };
 }
 
 #[derive(Resource, Default)]
@@ -64,7 +64,7 @@ impl CameraProjection for ProcessingProjection {
             0.0,
             self.width,
             self.height, // bottom = height
-            0.0, // top = 0
+            0.0,         // top = 0
             self.near,
             self.far,
         )
@@ -94,28 +94,17 @@ impl CameraProjection for ProcessingProjection {
 
         [
             // near plane
-            near_center + Vec3A::new(half_width, half_height, 0.0),   // bottom-right
-            near_center + Vec3A::new(half_width, -half_height, 0.0),  // top-right
+            near_center + Vec3A::new(half_width, half_height, 0.0), // bottom-right
+            near_center + Vec3A::new(half_width, -half_height, 0.0), // top-right
             near_center + Vec3A::new(-half_width, -half_height, 0.0), // top-left
-            near_center + Vec3A::new(-half_width, half_height, 0.0),  // bottom-left
+            near_center + Vec3A::new(-half_width, half_height, 0.0), // bottom-left
             // far plane
-            far_center + Vec3A::new(half_width, half_height, 0.0),    // bottom-right
-            far_center + Vec3A::new(half_width, -half_height, 0.0),   // top-right
-            far_center + Vec3A::new(-half_width, -half_height, 0.0),  // top-left
-            far_center + Vec3A::new(-half_width, half_height, 0.0),   // bottom-left
+            far_center + Vec3A::new(half_width, half_height, 0.0), // bottom-right
+            far_center + Vec3A::new(half_width, -half_height, 0.0), // top-right
+            far_center + Vec3A::new(-half_width, -half_height, 0.0), // top-left
+            far_center + Vec3A::new(-half_width, half_height, 0.0), // bottom-left
         ]
     }
-}
-
-fn app<T>(cb: impl FnOnce(&App) -> Result<T>) -> Result<T> {
-    let res = APP.with(|app_cell| {
-        let app_borrow = app_cell.borrow();
-        let app = app_borrow
-            .as_ref()
-            .ok_or_else(|| error::ProcessingError::AppAccess)?;
-        cb(app)
-    })?;
-    Ok(res)
 }
 
 fn app_mut<T>(cb: impl FnOnce(&mut App) -> Result<T>) -> Result<T> {
@@ -123,7 +112,7 @@ fn app_mut<T>(cb: impl FnOnce(&mut App) -> Result<T>) -> Result<T> {
         let mut app_borrow = app_cell.borrow_mut();
         let app = app_borrow
             .as_mut()
-            .ok_or_else(|| error::ProcessingError::AppAccess)?;
+            .ok_or(error::ProcessingError::AppAccess)?;
         cb(app)
     })?;
     Ok(res)
@@ -195,10 +184,7 @@ pub fn create_surface(
             let content_view: Option<Retained<NSView>> = ns_window_ref.contentView();
 
             match content_view {
-                Some(view) => {
-                    let view_ptr = Retained::as_ptr(&view) as *mut std::ffi::c_void;
-                    view_ptr
-                }
+                Some(view) => Retained::as_ptr(&view) as *mut std::ffi::c_void,
                 None => {
                     return Err(error::ProcessingError::InvalidWindowHandle);
                 }
@@ -215,10 +201,10 @@ pub fn create_surface(
 
     #[cfg(target_os = "windows")]
     let (raw_window_handle, raw_display_handle) = {
-        use raw_window_handle::{Win32WindowHandle, WindowsDisplayHandle};
         use std::num::NonZeroIsize;
-        use windows::Win32::Foundation::HINSTANCE;
-        use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+
+        use raw_window_handle::{Win32WindowHandle, WindowsDisplayHandle};
+        use windows::Win32::{Foundation::HINSTANCE, System::LibraryLoader::GetModuleHandleW};
 
         if window_handle == 0 {
             return Err(error::ProcessingError::InvalidWindowHandle);
@@ -478,7 +464,6 @@ pub fn exit(exit_code: u8) -> Result<()> {
         Ok(())
     })?;
 
-
     // we need to drop the app in a deterministic manner to ensure resourcse are cleaned up
     // otherwise we'll get wgpu graphics backend errors on exit
     APP.with(|app_cell| {
@@ -492,7 +477,7 @@ pub fn exit(exit_code: u8) -> Result<()> {
 pub fn background_color(window_entity: Entity, color: Color) -> Result<()> {
     app_mut(|app| {
         let mut camera_query = app.world_mut().query::<(&mut Camera, &ChildOf)>();
-        for (mut camera, parent) in camera_query.iter_mut(&mut app.world_mut()) {
+        for (mut camera, parent) in camera_query.iter_mut(app.world_mut()) {
             if parent.parent() == window_entity {
                 camera.clear_color = ClearColorConfig::Custom(color);
             }

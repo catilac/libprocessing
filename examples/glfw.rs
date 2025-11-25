@@ -22,7 +22,11 @@ impl GlfwContext {
         window.set_all_polling(true);
         window.show();
 
-        Ok(Self { glfw, window, events })
+        Ok(Self {
+            glfw,
+            window,
+            events,
+        })
     }
 
     #[cfg(target_os = "macos")]
