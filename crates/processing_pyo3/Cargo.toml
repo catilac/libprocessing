@@ -7,7 +7,7 @@ edition = "2024"
 workspace = true
 
 [lib]
-name = "pycessing"
+name = "processing"
 crate-type = ["cdylib"]
 
 [dependencies]
