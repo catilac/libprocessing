@@ -14,6 +14,6 @@ $ maturin develop
 # ...
 #
 $ python
->>> import pycessing
->>> pycessing.size(500, 500)
+>>> import processing
+>>> processing.size(500, 500)
 ```

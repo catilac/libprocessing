@@ -2,7 +2,7 @@ mod glfw;
 use pyo3::prelude::*;
 
 #[pymodule]
-mod pycessing {
+mod processing {
     use crate::glfw::GlfwContext;
     use processing::prelude::*;
     use pyo3::prelude::*;
