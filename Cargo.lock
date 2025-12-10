@@ -4403,6 +4403,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "processing_embedded"
+version = "0.1.0"
+
+[[package]]
 name = "processing_ffi"
 version = "0.1.0"
 dependencies = [
