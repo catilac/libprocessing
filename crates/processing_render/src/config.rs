@@ -8,6 +8,7 @@ use std::collections::HashMap;
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub enum ConfigKey {
     AssetRootPath,
+    SketchRootPath,
 }
 
 // TODO: Consider Box<dyn Any> instead of String

@@ -5,6 +5,7 @@ mod graphics;
 pub mod image;
 pub mod light;
 pub mod render;
+pub mod sketch;
 mod surface;
 pub mod transform;
 
@@ -245,6 +246,15 @@ fn create_app(config: Config) -> App {
     }
 
     app.add_plugins(plugins);
+    if let Some(sketch_path) = config.get(ConfigKey::SketchRootPath) {
+        println!("DEBUG SKETCH PATH = {sketch_path}");
+        app.register_asset_source(
+            "sketch_directory",
+            AssetSourceBuilder::platform_default(sketch_path, None),
+        )
+        .add_plugins(sketch::LivecodePlugin);
+    }
+
     app.add_plugins((
         ImagePlugin,
         GraphicsPlugin,
