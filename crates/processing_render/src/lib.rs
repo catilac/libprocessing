@@ -213,6 +213,21 @@ fn create_app(config: Config) -> App {
 
     app.insert_resource(config.clone());
 
+    if let Some(asset_path) = config.get(ConfigKey::AssetRootPath) {
+        app.register_asset_source(
+            "assets_directory",
+            AssetSourceBuilder::platform_default(asset_path, None),
+        );
+    }
+
+    if let Some(sketch_path) = config.get(ConfigKey::SketchRootPath) {
+        println!("DEBUG SKETCH PATH = {sketch_path}");
+        app.register_asset_source(
+            "sketch_directory",
+            AssetSourceBuilder::platform_default(sketch_path, None),
+        );
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     let plugins = DefaultPlugins
         .build()
@@ -235,21 +250,10 @@ fn create_app(config: Config) -> App {
             ..default()
         });
 
-    if let Some(asset_path) = config.get(ConfigKey::AssetRootPath) {
-        app.register_asset_source(
-            "assets_directory",
-            AssetSourceBuilder::platform_default(asset_path, None),
-        );
-    }
-
     app.add_plugins(plugins);
-    if let Some(sketch_path) = config.get(ConfigKey::SketchRootPath) {
-        println!("DEBUG SKETCH PATH = {sketch_path}");
-        app.register_asset_source(
-            "sketch_directory",
-            AssetSourceBuilder::platform_default(sketch_path, None),
-        )
-        .add_plugins(sketch::LivecodePlugin);
+
+    if let Some(_) = config.get(ConfigKey::SketchRootPath) {
+        app.add_plugins(sketch::LivecodePlugin);
     }
 
     app.add_plugins((
