@@ -1,18 +1,13 @@
 //! A Sketch asset represents a source file containing user code for a Processing sketch.
-//!
-//! Sketches are loaded through Bevy's asset system, which provides automatic file watching
-//! and change detection. This enables hot-reloading workflows where artists can edit their
-//! sketch code and see changes reflected immediately without restarting.
-//!
-//! This module is intentionally language-agnostic — it only handles loading source text from
-//! disk. Language-specific crates (like `processing_pyo3`) are responsible for executing the
-//! source and binding it to the Processing API.
 
 use bevy::{
-    asset::{AssetLoader, LoadContext, io::Reader},
+    asset::{
+        AssetLoader, AssetPath, LoadContext,
+        io::{AssetSourceId, Reader},
+    },
     prelude::*,
 };
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Plugin that registers the Sketch asset type and its loader.
 pub struct LivecodePlugin;
@@ -20,8 +15,19 @@ pub struct LivecodePlugin;
 impl Plugin for LivecodePlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<Sketch>()
-            .init_asset_loader::<SketchLoader>();
+            .init_asset_loader::<SketchLoader>()
+            .add_systems(Startup, load_current_sketch);
     }
+}
+
+fn load_current_sketch(asset_server: Res<AssetServer>) {
+    let path = Path::new("rectangle.py");
+    let source = AssetSourceId::from("sketch_directory");
+    let _asset_path = AssetPath::from_path(path).with_source(source);
+
+    dbg!("OKOKOKOK {:?}", _asset_path);
+
+    let _h: Handle<Sketch> = asset_server.load(path);
 }
 
 /// A sketch source file loaded as a Bevy asset.

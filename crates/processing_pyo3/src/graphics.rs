@@ -121,6 +121,11 @@ impl Graphics {
 
         let mut config = Config::new();
         config.set(ConfigKey::AssetRootPath, asset_path.to_string());
+        config.set(
+            // TODO: this needs to be handed to us by python
+            ConfigKey::SketchRootPath,
+            "/home/moon/Code/libprocessing/crates/processing_pyo3/examples".to_string(),
+        );
         init(config).map_err(|e| PyRuntimeError::new_err(format!("{e}")))?;
 
         let surface = glfw_ctx
