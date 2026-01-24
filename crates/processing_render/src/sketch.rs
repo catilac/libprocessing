@@ -6,9 +6,8 @@ use bevy::{
         io::{AssetSourceId, Reader},
     },
     prelude::*,
-    render::Extract,
 };
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// Plugin that registers the Sketch asset type and its loader.
 pub struct LivecodePlugin;
@@ -18,12 +17,13 @@ impl Plugin for LivecodePlugin {
         app.init_asset::<Sketch>()
             .init_asset_loader::<SketchLoader>();
 
-        app.add_systems(PreStartup, load_current_sketch);
-        // .add_systems(Update, test_system);
+        app.add_systems(PreStartup, load_current_sketch)
+            .add_systems(Update, sketch_update_handler);
     }
 }
 
-fn test_system(mut events: Extract<MessageReader<AssetEvent<Sketch>>>) {
+// TODO: A better name is possible
+fn sketch_update_handler(mut events: MessageReader<AssetEvent<Sketch>>) {
     for event in events.read() {
         match event {
             AssetEvent::Added { id } => {
@@ -63,7 +63,10 @@ pub struct SketchRoot(pub Handle<Sketch>);
 /// The `Sketch` asset contains the raw source code as a string. It does not interpret
 /// or execute the code — that responsibility belongs to language-specific crates.
 #[derive(Asset, TypePath, Debug)]
-pub struct Sketch;
+pub struct Sketch {
+    source: String,
+}
+
 /// Loads sketch files from disk.
 ///
 /// Currently supports `.py` files, but the loader is designed to be extended
@@ -80,7 +83,7 @@ impl AssetLoader for SketchLoader {
         &self,
         reader: &mut dyn Reader,
         _settings: &Self::Settings,
-        load_context: &mut LoadContext<'_>,
+        _load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut source = String::new();
 
@@ -91,10 +94,9 @@ impl AssetLoader for SketchLoader {
             source = utf8.to_string();
         }
 
-        let asset_path = load_context.path();
-        let path: PathBuf = asset_path.path().to_path_buf();
+        info!(source);
 
-        Ok(Sketch)
+        Ok(Sketch { source })
     }
 
     fn extensions(&self) -> &[&str] {
