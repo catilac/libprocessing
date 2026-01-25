@@ -9,28 +9,36 @@ use bevy::{
 };
 use std::path::Path;
 
+#[derive(Resource)]
+struct SketchNeedsReload(bool);
+
 /// Plugin that registers the Sketch asset type and its loader.
 pub struct LivecodePlugin;
 
 impl Plugin for LivecodePlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<Sketch>()
-            .init_asset_loader::<SketchLoader>();
-
-        app.add_systems(PreStartup, load_current_sketch)
+            .init_asset_loader::<SketchLoader>()
+            .insert_resource(SketchNeedsReload(false))
+            .add_systems(PreStartup, load_current_sketch)
             .add_systems(Update, sketch_update_handler);
     }
 }
 
 // TODO: A better name is possible
-fn sketch_update_handler(mut events: MessageReader<AssetEvent<Sketch>>) {
+fn sketch_update_handler(
+    mut events: MessageReader<AssetEvent<Sketch>>,
+    mut needs_reload: ResMut<SketchNeedsReload>,
+) {
     for event in events.read() {
         match event {
             AssetEvent::Added { id } => {
                 info!("Added: {id}")
             }
             AssetEvent::Modified { id } => {
-                info!("Modified: {id}")
+                info!("Modified: {id}");
+                // we want to emit some event to bevy??
+                needs_reload.0 = true;
             }
             AssetEvent::Removed { id } => {
                 info!("Removed: {id}")
