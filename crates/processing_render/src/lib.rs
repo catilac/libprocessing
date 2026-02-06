@@ -3,6 +3,7 @@ pub mod error;
 pub mod geometry;
 mod graphics;
 pub mod image;
+pub mod light;
 pub mod render;
 mod surface;
 
@@ -24,7 +25,10 @@ use tracing::debug;
 use crate::geometry::{AttributeFormat, AttributeValue};
 use crate::graphics::flush;
 use crate::{
-    graphics::GraphicsPlugin, image::ImagePlugin, render::command::DrawCommand,
+    graphics::GraphicsPlugin,
+    image::ImagePlugin,
+    light::{LightPlugin, LightType},
+    render::command::DrawCommand,
     surface::SurfacePlugin,
 };
 
@@ -247,6 +251,7 @@ fn create_app(config: Config) -> App {
         GraphicsPlugin,
         SurfacePlugin,
         geometry::GeometryPlugin,
+        LightPlugin,
     ));
     app.add_systems(First, (clear_transient_meshes, activate_cameras))
         .add_systems(Update, flush_draw_commands.before(AssetEventSystems));
@@ -699,6 +704,16 @@ pub fn image_destroy(entity: Entity) -> error::Result<()> {
         app.world_mut()
             .run_system_cached_with(image::destroy, entity)
             .unwrap()
+    })
+}
+
+// pub fn geometry_box(width: f32, height: f32, depth: f32) -> error::Result<Entity> {
+pub fn light_create(light_type: LightType, x: f32, y: f32, z: f32) -> error::Result<Entity> {
+    app_mut(|app| {
+        Ok(app
+            .world_mut()
+            .run_system_cached_with(light::create, (light_type, x, y, z))
+            .unwrap())
     })
 }
 

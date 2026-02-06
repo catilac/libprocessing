@@ -37,7 +37,7 @@ pub enum DrawCommand {
         angle: f32,
     },
     Geometry(Entity),
-    Light(Entity),
+    // Light(Entity),
 }
 
 #[derive(Debug, Default, Component)]

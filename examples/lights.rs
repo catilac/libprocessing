@@ -2,6 +2,7 @@ mod glfw;
 
 use glfw::GlfwContext;
 use processing::prelude::*;
+use processing_render::light::LightType;
 use processing_render::render::command::DrawCommand;
 
 fn main() {
@@ -29,7 +30,9 @@ fn sketch() -> error::Result<()> {
     let graphics = graphics_create(surface, width, height)?;
     let box_geo = geometry_box(10.0, 10.0, 10.0)?;
 
-    let point_light = light_create()?;
+    // We will only declare lights in `setup`
+    // rather than calling some sort of `light()` method inside of `draw`
+    let _point_light = light_create(LightType::Point, 0.0, 0.0, 0.0)?;
 
     graphics_mode_3d(graphics)?;
     graphics_camera_position(graphics, 100.0, 100.0, 300.0)?;
@@ -44,8 +47,6 @@ fn sketch() -> error::Result<()> {
             graphics,
             DrawCommand::BackgroundColor(bevy::color::Color::srgb(0.18, 0.20, 0.15)),
         )?;
-
-        graphics_record_command(graphics, DrawCommand::Light(point_light))?;
 
         graphics_record_command(graphics, DrawCommand::PushMatrix)?;
         graphics_record_command(graphics, DrawCommand::Translate { x: 25.0, y: 25.0 })?;
