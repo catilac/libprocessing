@@ -17,7 +17,6 @@ pub struct Light {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LightType {
-    Ambient,
     Directional,
     Point,
     Spot,
@@ -37,6 +36,6 @@ pub fn create(
         LightType::Directional => commands
             .spawn((DirectionalLight::default(), Transform::from_xyz(x, y, z)))
             .id(),
-        _ => commands.spawn(AmbientLight::default()).id(),
+        _ => commands.spawn(DirectionalLight::default()).id(),
     }
 }
