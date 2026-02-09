@@ -26,12 +26,6 @@ pub fn create(
     In((light_type, x, y, z)): In<(LightType, f32, f32, f32)>,
     mut commands: Commands,
 ) -> Entity {
-    // let light = Light {
-    //     light_type: light_type,
-    //     pos: Vec3::new(x, y, z),
-    // };
-    // commands.spawn(light).id()
-
     match light_type {
         LightType::Directional => commands
             .spawn((DirectionalLight::default(), Transform::from_xyz(x, y, z)))
