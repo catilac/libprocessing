@@ -2,7 +2,6 @@ mod glfw;
 
 use glfw::GlfwContext;
 use processing::prelude::*;
-use processing_render::light::LightType;
 use processing_render::render::command::DrawCommand;
 
 fn main() {
@@ -32,7 +31,7 @@ fn sketch() -> error::Result<()> {
 
     // We will only declare lights in `setup`
     // rather than calling some sort of `light()` method inside of `draw`
-    let _point_light = light_create(LightType::Point, 0.0, 0.0, 0.0)?;
+    let _dir_light = light_create_directional(0.0, 0.0, 0.0, 0.5, 0.43, 1.0, 1.0, 1000.0);
 
     graphics_mode_3d(graphics)?;
     graphics_camera_position(graphics, 100.0, 100.0, 300.0)?;

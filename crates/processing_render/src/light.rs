@@ -9,27 +9,80 @@ impl Plugin for LightPlugin {
     fn build(&self, _app: &mut App) {}
 }
 
-#[derive(Component)]
-pub struct Light {
-    pub light_type: LightType,
-    pub pos: Vec3,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum LightType {
-    Directional,
-    Point,
-    Spot,
-}
-
-pub fn create(
-    In((light_type, x, y, z)): In<(LightType, f32, f32, f32)>,
+pub fn create_directional(
+    In((px, py, pz, r, g, b, a, illuminance)): In<(f32, f32, f32, f32, f32, f32, f32, f32)>,
     mut commands: Commands,
 ) -> Entity {
-    match light_type {
-        LightType::Directional => commands
-            .spawn((DirectionalLight::default(), Transform::from_xyz(x, y, z)))
-            .id(),
-        _ => commands.spawn(DirectionalLight::default()).id(),
-    }
+    commands
+        .spawn((
+            DirectionalLight {
+                illuminance,
+                color: Color::srgba(r, g, b, a),
+                ..default()
+            },
+            Transform::from_xyz(px, py, pz),
+        ))
+        .id()
+}
+
+pub fn create_point(
+    In((px, py, pz, r, g, b, a, intensity, range, radius)): In<(
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+    )>,
+    mut commands: Commands,
+) -> Entity {
+    commands
+        .spawn((
+            PointLight {
+                intensity,
+                color: Color::srgba(r, g, b, a),
+                range,
+                radius,
+                ..default()
+            },
+            Transform::from_xyz(px, py, pz),
+        ))
+        .id()
+}
+
+pub fn create_spot(
+    In((px, py, pz, r, g, b, a, intensity, range, radius, inner_angle, outer_angle)): In<(
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+        f32,
+    )>,
+    mut commands: Commands,
+) -> Entity {
+    commands
+        .spawn((
+            SpotLight {
+                color: Color::srgba(r, g, b, a),
+                intensity,
+                range,
+                radius,
+                inner_angle,
+                outer_angle,
+                ..default()
+            },
+            Transform::from_xyz(px, py, pz),
+        ))
+        .id()
 }
