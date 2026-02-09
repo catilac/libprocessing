@@ -102,7 +102,6 @@ pub fn flush_draw_commands(
     >,
     p_images: Query<&Image>,
     p_geometries: Query<&Geometry>,
-    // p_lights: Query<&Light>,
 ) {
     for (graphics_entity, mut cmd_buffer, mut state, render_layers, projection, camera_transform) in
         graphics.iter_mut()
