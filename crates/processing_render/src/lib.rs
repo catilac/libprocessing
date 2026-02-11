@@ -3,6 +3,7 @@ pub mod error;
 pub mod geometry;
 mod graphics;
 pub mod image;
+pub mod light;
 pub mod render;
 mod surface;
 pub mod transform;
@@ -25,7 +26,7 @@ use tracing::debug;
 use crate::geometry::{AttributeFormat, AttributeValue};
 use crate::graphics::flush;
 use crate::{
-    graphics::GraphicsPlugin, image::ImagePlugin, render::command::DrawCommand,
+    graphics::GraphicsPlugin, image::ImagePlugin, light::LightPlugin, render::command::DrawCommand,
     surface::SurfacePlugin,
 };
 
@@ -248,6 +249,7 @@ fn create_app(config: Config) -> App {
         GraphicsPlugin,
         SurfacePlugin,
         geometry::GeometryPlugin,
+        LightPlugin,
     ));
     app.add_systems(First, (clear_transient_meshes, activate_cameras))
         .add_systems(Update, flush_draw_commands.before(AssetEventSystems));
@@ -770,6 +772,65 @@ pub fn image_destroy(entity: Entity) -> error::Result<()> {
     app_mut(|app| {
         app.world_mut()
             .run_system_cached_with(image::destroy, entity)
+            .unwrap()
+    })
+}
+
+pub fn light_create_directional(
+    graphics_entity: Entity,
+    color: Color,
+    illuminance: f32,
+) -> error::Result<Entity> {
+    app_mut(|app| {
+        app.world_mut()
+            .run_system_cached_with(
+                light::create_directional,
+                (graphics_entity, color, illuminance),
+            )
+            .unwrap()
+    })
+}
+
+pub fn light_create_point(
+    graphics_entity: Entity,
+    color: Color,
+    intensity: f32,
+    range: f32,
+    radius: f32,
+) -> error::Result<Entity> {
+    app_mut(|app| {
+        app.world_mut()
+            .run_system_cached_with(
+                light::create_point,
+                (graphics_entity, color, intensity, range, radius),
+            )
+            .unwrap()
+    })
+}
+
+pub fn light_create_spot(
+    graphics_entity: Entity,
+    color: Color,
+    intensity: f32,
+    range: f32,
+    radius: f32,
+    inner_angle: f32,
+    outer_angle: f32,
+) -> error::Result<Entity> {
+    app_mut(|app| {
+        app.world_mut()
+            .run_system_cached_with(
+                light::create_spot,
+                (
+                    graphics_entity,
+                    color,
+                    intensity,
+                    range,
+                    radius,
+                    inner_angle,
+                    outer_angle,
+                ),
+            )
             .unwrap()
     })
 }
