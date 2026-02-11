@@ -70,7 +70,7 @@ fn get_asset_root() -> PyResult<String> {
     })
 }
 
-fn get_sketch_root() -> PyResult<String> {
+fn get_sketch_info() -> PyResult<(String, String)> {
     Python::attach(|py| {
         let sys = PyModule::import(py, "sys")?;
         let argv: Vec<String> = sys.getattr("argv")?.extract()?;
@@ -79,19 +79,8 @@ fn get_sketch_root() -> PyResult<String> {
         let path = os.getattr("path")?;
         let dirname = path.getattr("dirname")?.call1((filename,))?;
         let abspath = path.getattr("abspath")?.call1((dirname,))?;
-        Ok(abspath.to_string())
-    })
-}
-
-fn get_sketch_filename() -> PyResult<String> {
-    Python::attach(|py| {
-        let sys = PyModule::import(py, "sys")?;
-        let argv: Vec<String> = sys.getattr("argv")?.extract()?;
-        let filename: &str = argv[0].as_str();
-        let os = PyModule::import(py, "os")?;
-        let path = os.getattr("path")?;
         let basename = path.getattr("basename")?.call1((filename,))?;
-        Ok(basename.to_string())
+        Ok((abspath.to_string(), basename.to_string()))
     })
 }
 
@@ -99,8 +88,9 @@ fn get_sketch_filename() -> PyResult<String> {
 #[pyo3(pass_module)]
 fn size(module: &Bound<'_, PyModule>, width: u32, height: u32) -> PyResult<()> {
     let asset_path: String = get_asset_root()?;
-    let sketch_root_path: String = get_sketch_root()?;
-    let sketch_filename: String = get_sketch_filename()?;
+    let (sketch_root_path, sketch_filename) = get_sketch_info()?;
+    // let sketch_root_path: String = get_sketch_root()?;
+    // let sketch_filename: String = get_sketch_filename()?;
     let graphics = Graphics::new(
         width,
         height,

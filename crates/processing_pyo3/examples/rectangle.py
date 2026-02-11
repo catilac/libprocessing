@@ -8,7 +8,7 @@ def draw():
 
     fill(255, 0, 100)
     stroke(1)
-    stroke_weight(25)
+    stroke_weight(2)
     rect(100, 100, 200, 150)
 
 # TODO: this should happen implicitly on module load somehow
