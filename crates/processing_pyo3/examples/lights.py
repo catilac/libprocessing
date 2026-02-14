@@ -5,7 +5,16 @@ angle = 0.0
 def setup():
     size(800, 600)
     mode_3d()
+
+    # Directional Light
     dir_light = create_directional_light(0.5, 0.24, 1.0, 1500.0)
+
+    # Point Lights
+    point_light_a = create_point_light(1.0, 0.5, 0.25, 1000000.0, 200.0, 0.5)
+    point_light_b = create_point_light(0.0, 0.5, 0.75, 2000000.0, 200.0, 0.25)
+
+    # Spot Light
+    spot_light = create_spot_light(0.25, 0.8, 0.19, 15.0 * 1000000.0, 200.0, 0.84, 0.0, 0.7854)
 
 def draw():
     global angle

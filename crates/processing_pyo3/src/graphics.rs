@@ -329,6 +329,48 @@ impl Graphics {
             Err(e) => Err(PyRuntimeError::new_err(format!("{e}"))),
         }
     }
+
+    pub fn light_point(
+        &self,
+        r: f32,
+        g: f32,
+        b: f32,
+        intensity: f32,
+        range: f32,
+        radius: f32,
+    ) -> PyResult<Light> {
+        let color = bevy::color::Color::srgb(r, g, b);
+        match light_create_point(self.entity, color, intensity, range, radius) {
+            Ok(light) => Ok(Light { entity: light }),
+            Err(e) => Err(PyRuntimeError::new_err(format!("{e}"))),
+        }
+    }
+
+    pub fn light_spot(
+        &self,
+        r: f32,
+        g: f32,
+        b: f32,
+        intensity: f32,
+        range: f32,
+        radius: f32,
+        inner_angle: f32,
+        outer_angle: f32,
+    ) -> PyResult<Light> {
+        let color = bevy::color::Color::srgb(r, g, b);
+        match light_create_spot(
+            self.entity,
+            color,
+            intensity,
+            range,
+            radius,
+            inner_angle,
+            outer_angle,
+        ) {
+            Ok(light) => Ok(Light { entity: light }),
+            Err(e) => Err(PyRuntimeError::new_err(format!("{e}"))),
+        }
+    }
 }
 
 // TODO: a real color type. or color parser? idk. color is confusing. let's think
