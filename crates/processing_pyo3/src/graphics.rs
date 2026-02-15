@@ -29,6 +29,18 @@ pub struct Light {
     entity: Entity,
 }
 
+#[pymethods]
+impl Light {
+    pub fn position(&self, x: f32, y: f32, z: f32) -> PyResult<()> {
+        transform_set_position(self.entity, x, y, z)
+            .map_err(|e| PyRuntimeError::new_err(format!("{e}")))
+    }
+
+    pub fn look_at(&self, x: f32, y: f32, z: f32) -> PyResult<()> {
+        transform_look_at(self.entity, x, y, z).map_err(|e| PyRuntimeError::new_err(format!("{e}")))
+    }
+}
+
 // TODO: implement `light_destroy`
 // impl Drop for Light {
 //     fn drop(&mut self) {
