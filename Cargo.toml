@@ -30,6 +30,7 @@ processing_midi = { path = "crates/processing_midi" }
 [dependencies]
 bevy = { workspace = true }
 processing_render = { workspace = true }
+processing_midi = { workspace = true }
 
 [dev-dependencies]
 glfw = "0.60.0"
@@ -68,6 +69,10 @@ path = "examples/custom_attribute.rs"
 [[example]]
 name = "lights"
 path = "examples/lights.rs"
+
+[[example]]
+name = "midi"
+path = "examples/midi.rs"
 
 [profile.wasm-release]
 inherits = "release"
