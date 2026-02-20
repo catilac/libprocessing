@@ -15,19 +15,21 @@ pub enum MaterialKey {
         transparent: bool,
         background_image: Option<Handle<Image>>,
     },
-    Pbr {},
+    Pbr {
+        albedo: [u8; 4],
+        roughness: u8,
+        metallic: u8,
+        emissive: [u8; 4],
+    },
     Custom(Entity),
 }
 
 impl MaterialKey {
-    pub fn to_material(
-        &self,
-        standard_materials: &mut ResMut<Assets<StandardMaterial>>,
-    ) -> UntypedHandle {
+    pub fn to_material(&self, materials: &mut ResMut<Assets<StandardMaterial>>) -> UntypedHandle {
         match self {
             MaterialKey::Color {
-                background_image,
                 transparent,
+                background_image,
             } => {
                 let mat = StandardMaterial {
                     base_color: Color::WHITE,
@@ -41,12 +43,37 @@ impl MaterialKey {
                     },
                     ..default()
                 };
-                standard_materials.add(mat).untyped()
+                materials.add(mat).untyped()
             }
-            MaterialKey::Pbr { .. } => {
-                todo!("implement pbr materials")
+            MaterialKey::Pbr {
+                albedo,
+                roughness,
+                metallic,
+                emissive,
+            } => {
+                let base_color = Color::srgba(
+                    albedo[0] as f32 / 255.0,
+                    albedo[1] as f32 / 255.0,
+                    albedo[2] as f32 / 255.0,
+                    albedo[3] as f32 / 255.0,
+                );
+                let mat = StandardMaterial {
+                    base_color,
+                    unlit: false,
+                    cull_mode: None,
+                    perceptual_roughness: *roughness as f32 / 255.0,
+                    metallic: *metallic as f32 / 255.0,
+                    emissive: LinearRgba::new(
+                        emissive[0] as f32 / 255.0,
+                        emissive[1] as f32 / 255.0,
+                        emissive[2] as f32 / 255.0,
+                        emissive[3] as f32 / 255.0,
+                    ),
+                    ..default()
+                };
+                materials.add(mat).untyped()
             }
-            MaterialKey::Custom(_) => {
+            MaterialKey::Custom(_entity) => {
                 todo!("implement custom materials")
             }
         }
@@ -55,10 +82,7 @@ impl MaterialKey {
 
 /// A system that adds a `MeshMaterial3d` component to any entity with an `UntypedMaterial` that can
 /// be typed as a `StandardMaterial`.
-pub(crate) fn add_standard_materials(
-    mut commands: Commands,
-    meshes: Query<(Entity, &UntypedMaterial)>,
-) {
+pub fn add_standard_materials(mut commands: Commands, meshes: Query<(Entity, &UntypedMaterial)>) {
     for (entity, handle) in meshes.iter() {
         let handle = handle.deref().clone();
         if let Ok(handle) = handle.try_typed::<StandardMaterial>() {

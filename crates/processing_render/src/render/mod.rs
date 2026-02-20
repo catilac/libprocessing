@@ -12,11 +12,15 @@ use bevy::{
 };
 use command::{CommandBuffer, DrawCommand};
 use material::MaterialKey;
-use primitive::{TessellationMode, empty_mesh};
+use primitive::{TessellationMode, box_mesh, empty_mesh, sphere_mesh};
 use transform::TransformStack;
 
-use crate::render::material::UntypedMaterial;
-use crate::{Flush, geometry::Geometry, image::Image, render::primitive::rect};
+use crate::{
+    Flush,
+    geometry::Geometry,
+    image::Image,
+    render::{material::UntypedMaterial, primitive::rect},
+};
 
 #[derive(Component)]
 #[relationship(relationship_target = TransientMeshes)]
@@ -60,23 +64,33 @@ pub struct RenderState {
     pub fill_color: Option<Color>,
     pub stroke_color: Option<Color>,
     pub stroke_weight: f32,
+    pub material_key: MaterialKey,
     pub transform: TransformStack,
 }
 
-impl Default for RenderState {
-    fn default() -> Self {
+impl RenderState {
+    pub fn new() -> Self {
         Self {
             fill_color: Some(Color::WHITE),
             stroke_color: Some(Color::BLACK),
             stroke_weight: 1.0,
+            material_key: MaterialKey::Color {
+                transparent: false,
+                background_image: None,
+            },
             transform: TransformStack::new(),
         }
     }
-}
 
-impl RenderState {
     pub fn reset(&mut self) {
-        *self = Self::default();
+        self.fill_color = Some(Color::WHITE);
+        self.stroke_color = Some(Color::BLACK);
+        self.stroke_weight = 1.0;
+        self.material_key = MaterialKey::Color {
+            transparent: false,
+            background_image: None,
+        };
+        self.transform = TransformStack::new();
     }
 
     pub fn fill_is_transparent(&self) -> bool {
@@ -85,6 +99,12 @@ impl RenderState {
 
     pub fn stroke_is_transparent(&self) -> bool {
         self.stroke_color.map(|c| c.alpha() < 1.0).unwrap_or(false)
+    }
+}
+
+impl Default for RenderState {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -103,6 +123,7 @@ pub fn flush_draw_commands(
     >,
     p_images: Query<&Image>,
     p_geometries: Query<&Geometry>,
+    p_material_handles: Query<&UntypedMaterial>,
 ) {
     for (graphics_entity, mut cmd_buffer, mut state, render_layers, projection, camera_transform) in
         graphics.iter_mut()
@@ -129,6 +150,76 @@ pub fn flush_draw_commands(
                 }
                 DrawCommand::StrokeWeight(weight) => {
                     state.stroke_weight = weight;
+                }
+                DrawCommand::Roughness(r) => {
+                    state.material_key = match state.material_key {
+                        MaterialKey::Pbr {
+                            albedo,
+                            metallic,
+                            emissive,
+                            ..
+                        } => MaterialKey::Pbr {
+                            albedo,
+                            roughness: (r * 255.0) as u8,
+                            metallic,
+                            emissive,
+                        },
+                        _ => MaterialKey::Pbr {
+                            albedo: [255, 255, 255, 255],
+                            roughness: (r * 255.0) as u8,
+                            metallic: 0,
+                            emissive: [0, 0, 0, 0],
+                        },
+                    };
+                }
+                DrawCommand::Metallic(m) => {
+                    state.material_key = match state.material_key {
+                        MaterialKey::Pbr {
+                            albedo,
+                            roughness,
+                            emissive,
+                            ..
+                        } => MaterialKey::Pbr {
+                            albedo,
+                            roughness,
+                            metallic: (m * 255.0) as u8,
+                            emissive,
+                        },
+                        _ => MaterialKey::Pbr {
+                            albedo: [255, 255, 255, 255],
+                            roughness: 128,
+                            metallic: (m * 255.0) as u8,
+                            emissive: [0, 0, 0, 0],
+                        },
+                    };
+                }
+                DrawCommand::Emissive(color) => {
+                    let [r, g, b, a] = color.to_srgba().to_u8_array();
+                    state.material_key = match state.material_key {
+                        MaterialKey::Pbr {
+                            albedo,
+                            roughness,
+                            metallic,
+                            ..
+                        } => MaterialKey::Pbr {
+                            albedo,
+                            roughness,
+                            metallic,
+                            emissive: [r, g, b, a],
+                        },
+                        _ => MaterialKey::Pbr {
+                            albedo: [255, 255, 255, 255],
+                            roughness: 128,
+                            metallic: 0,
+                            emissive: [r, g, b, a],
+                        },
+                    };
+                }
+                DrawCommand::Unlit => {
+                    state.material_key = MaterialKey::Color {
+                        transparent: state.fill_is_transparent(),
+                        background_image: None,
+                    };
                 }
                 DrawCommand::Rect { x, y, w, h, radii } => {
                     add_fill(&mut res, &mut batch, &state, |mesh, color| {
@@ -211,18 +302,21 @@ pub fn flush_draw_commands(
                         continue;
                     };
 
-                    flush_batch(&mut res, &mut batch);
-
-                    // TODO: Implement state based material API
-                    // https://github.com/processing/libprocessing/issues/10
-                    let material_key = MaterialKey::Color {
-                        transparent: false, // TODO: detect from geometry colors
-                        background_image: None,
+                    let material_key = material_key_with_fill(&state);
+                    let material_handle = match &material_key {
+                        MaterialKey::Custom(mat_entity) => {
+                            let Some(handle) = p_material_handles.get(*mat_entity).ok() else {
+                                warn!("Could not find material for entity {:?}", mat_entity);
+                                continue;
+                            };
+                            handle.0.clone()
+                        }
+                        _ => material_key.to_material(&mut res.materials),
                     };
 
-                    let material_handle = material_key.to_material(&mut res.materials);
-                    let z_offset = -(batch.draw_index as f32 * 0.001);
+                    flush_batch(&mut res, &mut batch);
 
+                    let z_offset = -(batch.draw_index as f32 * 0.001);
                     let mut transform = state.transform.to_bevy_transform();
                     transform.translation.z += z_offset;
 
@@ -235,6 +329,28 @@ pub fn flush_draw_commands(
                     ));
 
                     batch.draw_index += 1;
+                }
+                DrawCommand::Material(entity) => {
+                    state.material_key = MaterialKey::Custom(entity);
+                }
+                DrawCommand::Box {
+                    width,
+                    height,
+                    depth,
+                } => {
+                    add_shape3d(&mut res, &mut batch, &state, box_mesh(width, height, depth));
+                }
+                DrawCommand::Sphere {
+                    radius,
+                    sectors,
+                    stacks,
+                } => {
+                    add_shape3d(
+                        &mut res,
+                        &mut batch,
+                        &state,
+                        sphere_mesh(radius, sectors, stacks),
+                    );
                 }
             }
         }
@@ -261,12 +377,11 @@ pub fn clear_transient_meshes(
 }
 
 fn spawn_mesh(res: &mut RenderResources, batch: &mut BatchState, mesh: Mesh, z_offset: f32) {
-    let Some(material_key) = &batch.material_key else {
+    let Some(key) = &batch.material_key else {
         return;
     };
 
     let mesh_handle = res.meshes.add(mesh);
-    let material_handle = material_key.to_material(&mut res.materials);
 
     let (scale, rotation, translation) = batch.transform.to_scale_rotation_translation();
     let transform = Transform {
@@ -274,6 +389,8 @@ fn spawn_mesh(res: &mut RenderResources, batch: &mut BatchState, mesh: Mesh, z_o
         rotation,
         scale,
     };
+
+    let material_handle = key.to_material(&mut res.materials);
 
     res.commands.spawn((
         Mesh3d(mesh_handle),
@@ -285,9 +402,8 @@ fn spawn_mesh(res: &mut RenderResources, batch: &mut BatchState, mesh: Mesh, z_o
 }
 
 fn needs_batch(batch: &BatchState, state: &RenderState, material_key: &MaterialKey) -> bool {
-    let current_transform = state.transform.current();
     let material_changed = batch.material_key.as_ref() != Some(material_key);
-    let transform_changed = batch.transform != current_transform;
+    let transform_changed = batch.transform != state.transform.current();
     material_changed || transform_changed
 }
 
@@ -303,6 +419,37 @@ fn start_batch(
     batch.current_mesh = Some(empty_mesh());
 }
 
+fn material_key_with_color(key: &MaterialKey, color: Color) -> MaterialKey {
+    match key {
+        MaterialKey::Color {
+            background_image, ..
+        } => MaterialKey::Color {
+            transparent: color.alpha() < 1.0,
+            background_image: background_image.clone(),
+        },
+        MaterialKey::Pbr {
+            roughness,
+            metallic,
+            emissive,
+            ..
+        } => {
+            let [r, g, b, a] = color.to_srgba().to_u8_array();
+            MaterialKey::Pbr {
+                albedo: [r, g, b, a],
+                roughness: *roughness,
+                metallic: *metallic,
+                emissive: *emissive,
+            }
+        }
+        MaterialKey::Custom(e) => MaterialKey::Custom(*e),
+    }
+}
+
+fn material_key_with_fill(state: &RenderState) -> MaterialKey {
+    let color = state.fill_color.unwrap_or(Color::WHITE);
+    material_key_with_color(&state.material_key, color)
+}
+
 fn add_fill(
     res: &mut RenderResources,
     batch: &mut BatchState,
@@ -312,10 +459,7 @@ fn add_fill(
     let Some(color) = state.fill_color else {
         return;
     };
-    let material_key = MaterialKey::Color {
-        transparent: state.fill_is_transparent(),
-        background_image: None,
-    };
+    let material_key = material_key_with_color(&state.material_key, color);
 
     if needs_batch(batch, state, &material_key) {
         start_batch(res, batch, state, material_key);
@@ -336,10 +480,7 @@ fn add_stroke(
         return;
     };
     let stroke_weight = state.stroke_weight;
-    let material_key = MaterialKey::Color {
-        transparent: state.stroke_is_transparent(),
-        background_image: None,
-    };
+    let material_key = material_key_with_color(&state.material_key, color);
 
     if needs_batch(batch, state, &material_key) {
         start_batch(res, batch, state, material_key);
@@ -357,6 +498,28 @@ fn flush_batch(res: &mut RenderResources, batch: &mut BatchState) {
         batch.draw_index += 1;
     }
     batch.material_key = None;
+}
+
+fn add_shape3d(res: &mut RenderResources, batch: &mut BatchState, state: &RenderState, mesh: Mesh) {
+    flush_batch(res, batch);
+
+    let mesh_handle = res.meshes.add(mesh);
+    let material_key = material_key_with_fill(state);
+    let material_handle = material_key.to_material(&mut res.materials);
+
+    let z_offset = -(batch.draw_index as f32 * 0.001);
+    let mut transform = state.transform.to_bevy_transform();
+    transform.translation.z += z_offset;
+
+    res.commands.spawn((
+        Mesh3d(mesh_handle),
+        UntypedMaterial(material_handle),
+        BelongsToGraphics(batch.graphics_entity),
+        transform,
+        batch.render_layers.clone(),
+    ));
+
+    batch.draw_index += 1;
 }
 
 /// Creates a fullscreen quad by transforming NDC fullscreen by inverse of the clip-from-world matrix

@@ -243,7 +243,7 @@ pub fn create(
             Transform::from_xyz(0.0, 0.0, 999.9),
             render_layer,
             CommandBuffer::new(),
-            RenderState::default(),
+            RenderState::new(),
             SurfaceSize(width, height),
             Graphics {
                 readback_buffer,
