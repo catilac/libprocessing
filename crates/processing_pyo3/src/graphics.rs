@@ -1371,6 +1371,30 @@ impl Graphics {
             .map_err(|e| PyRuntimeError::new_err(format!("{e}")))
     }
 
+    pub fn push_style(&self) -> PyResult<()> {
+        graphics_record_command(self.entity, DrawCommand::PushStyle)
+            .map_err(|e| PyRuntimeError::new_err(format!("{e}")))
+    }
+
+    pub fn pop_style(&self) -> PyResult<()> {
+        graphics_record_command(self.entity, DrawCommand::PopStyle)
+            .map_err(|e| PyRuntimeError::new_err(format!("{e}")))
+    }
+
+    pub fn push(&self) -> PyResult<()> {
+        graphics_record_command(self.entity, DrawCommand::PushStyle)
+            .map_err(|e| PyRuntimeError::new_err(format!("{e}")))?;
+        graphics_record_command(self.entity, DrawCommand::PushMatrix)
+            .map_err(|e| PyRuntimeError::new_err(format!("{e}")))
+    }
+
+    pub fn pop(&self) -> PyResult<()> {
+        graphics_record_command(self.entity, DrawCommand::PopStyle)
+            .map_err(|e| PyRuntimeError::new_err(format!("{e}")))?;
+        graphics_record_command(self.entity, DrawCommand::PopMatrix)
+            .map_err(|e| PyRuntimeError::new_err(format!("{e}")))
+    }
+
     #[pyo3(signature = (*args))]
     pub fn translate(&self, args: &Bound<'_, PyTuple>) -> PyResult<()> {
         let v = if args.len() == 3 {
